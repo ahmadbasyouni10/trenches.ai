@@ -1,0 +1,23 @@
+{
+  "name": "crypto-ts-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for cryptocurrency prices from CoinGecko",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts"
+  },
+  "keywords": ["mcp", "cryptocurrency", "coingecko"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "axios": "^1.6.0",
+    "jsdom": "^22.1.0",
+    "zod": "^3.22.4",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.1"
+  }
+}
