@@ -1,72 +1,108 @@
-# Crypto Price MCP Server
+# Crypto Price & Trade Analysis Server
 
-An MCP server that provides cryptocurrency price information from CoinGecko using the TypeScript SDK.
+This MCP server provides cryptocurrency price information and Solana wallet trade analysis capabilities.
 
-## Installation
+## Features
 
-1. Clone this repository
-2. Install dependencies:
+1. **Crypto Price Tracking**
+   - Get real-time prices for any cryptocurrency
+   - Support for multiple cryptocurrencies in a single request
+   - Price caching to reduce API calls
 
+2. **Solana Wallet Analysis**
+   - Analyze trading history and performance
+   - Generate end-of-day trading reports
+   - Track profit/loss metrics
+   - Monitor trading patterns
+
+## Setup
+
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Build the project:
-
+2. Set up environment variables:
 ```bash
-npm run build
+export HELIUS_API_KEY=your_helius_api_key
 ```
 
-## Usage
-
-### Running the server directly
-
+3. Start the server:
 ```bash
 npm start
 ```
 
-### Using the MCP CLI (if you have it installed)
-
-```bash
-mcp dev dist/index.js
-```
-
 ## Available Tools
 
-- `getCryptoPrice(cryptoId)`: Get the price of a single cryptocurrency
-- `getMultipleCryptoPrices(cryptoIds)`: Get the prices of multiple cryptocurrencies (comma-separated)
+### Crypto Price Tools
 
-## Available Resources
+1. `getCryptoPrice`
+   - Get price for a single cryptocurrency
+   - Parameters:
+     - `cryptoId`: The ID of the cryptocurrency (e.g., 'bitcoin', 'ethereum', 'solana')
 
-- `crypto://{cryptoId}/price`: Get the price of a cryptocurrency as a resource
+2. `getMultipleCryptoPrices`
+   - Get prices for multiple cryptocurrencies
+   - Parameters:
+     - `cryptoIds`: Comma-separated list of cryptocurrency IDs
 
-## Available Prompts
+### Wallet Analysis Tools
 
-- `checkCryptoPrice`: Creates a prompt to ask about a cryptocurrency's price
+1. `analyzeTrades`
+   - Analyze trading history for a Solana wallet
+   - Parameters:
+     - `walletAddress`: The Solana wallet address to analyze
+
+2. `getEndOfDayReport`
+   - Generate detailed end-of-day trading report
+   - Parameters:
+     - `walletAddress`: The Solana wallet address to generate report for
 
 ## Example Usage
 
+```typescript
+// Get crypto price
+const btcPrice = await server.getCryptoPrice({ cryptoId: 'bitcoin' });
+
+// Get multiple crypto prices
+const prices = await server.getMultipleCryptoPrices({ 
+  cryptoIds: 'bitcoin,ethereum,solana' 
+});
+
+// Analyze trades for a wallet
+const analysis = await server.analyzeTrades({
+  walletAddress: 'YourSolanaWalletAddress'
+});
+
+// Get end of day report
+const report = await server.getEndOfDayReport({
+  walletAddress: 'YourSolanaWalletAddress'
+});
 ```
-# Get Bitcoin price
-getCryptoPrice("bitcoin")
 
-# Get multiple prices
-getMultipleCryptoPrices("bitcoin,ethereum,solana")
-```
+## Resources
 
-## Supported Cryptocurrencies
+The server also provides the following resources:
 
-The server supports all cryptocurrencies available on CoinGecko. Here are some common ones:
+1. `crypto://{cryptoId}/price`
+   - Get price information for a specific cryptocurrency
 
-- bitcoin
-- ethereum
-- solana
-- cardano
-- dogecoin
-- polkadot
-- ripple (xrp)
-- binancecoin
-- avalanche-2 (avax)
-- shiba-inu
+2. `wallet://{address}/analysis`
+   - Get trading analysis for a specific wallet address
 
-For more IDs, refer to the URL path in CoinGecko's website (e.g., https://www.coingecko.com/en/coins/bitcoin). 
+## Dependencies
+
+- @modelcontextprotocol/sdk
+- axios
+- zod
+
+## Environment Variables
+
+- `HELIUS_API_KEY`: Required for wallet analysis features (get one at https://helius.xyz)
+
+## Notes
+
+- Price data is cached for 1 minute to reduce API calls
+- Wallet analysis requires a valid Helius API key
+- Trade profit/loss calculations are simplified and may need refinement based on your needs
+- The server uses stdio transport for communication 

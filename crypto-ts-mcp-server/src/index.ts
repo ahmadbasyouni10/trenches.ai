@@ -2,12 +2,23 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import axios from "axios";
+import { WalletAnalyzer } from "./wallet-analyzer.js";
+import dotenv from 'dotenv';
+
+// Import the WalletStats interface
+import type { WalletStats } from "./wallet-analyzer.js";
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Create an MCP server
 const server = new McpServer({
   name: "CryptoPriceServer",
   version: "1.0.0"
 });
+
+// Initialize wallet analyzer with Helius API key from environment variable
+const walletAnalyzer = new WalletAnalyzer(process.env.HELIUS_API_KEY ?? "YOUR_HELIUS_API_KEY");
 
 // Type for cryptocurrency data
 interface CryptoPrice {
@@ -264,6 +275,113 @@ server.resource(
         text: `${result.name} (${result.symbol}): $${result.price} ${result.currency} [Source: ${result.source}]`
       }]
     };
+  }
+);
+
+// Add a tool to analyze a wallet's trading history
+server.tool(
+  "analyzeTrades",
+  { 
+    walletAddress: z.string().describe("The Solana wallet address to analyze"),
+  },
+  async ({ walletAddress }) => {
+    try {
+      // Set a timeout for the entire operation
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Analysis timed out after 20 seconds")), 20000);
+      });
+      
+      // Use Promise.race to implement timeout
+      const statsPromise = walletAnalyzer.analyzeWallet(walletAddress);
+      const stats = await Promise.race([statsPromise, timeoutPromise]) as WalletStats;
+      
+      return {
+        content: [{ 
+          type: "text", 
+          text: `
+Trading Analysis for ${walletAddress}:
+- Total Swaps: ${stats.totalTrades}
+- Profitable Trades: ${stats.profitableTrades}
+- Success Rate: ${stats.successRate.toFixed(2)}%
+- Total P/L: ${stats.totalProfitLoss.toFixed(4)} SOL
+- Average Trade Size: ${stats.averageTradeSize.toFixed(4)} SOL
+- Largest SOL Trade: ${stats.largestSOLTrade.toFixed(4)} SOL
+          `
+        }]
+      };
+    } catch (error: any) {
+      console.error("Wallet analysis failed:", error.message);
+      return {
+        content: [{ 
+          type: "text", 
+          text: `Error analyzing trades: ${error.message}. Try again with a wallet that has fewer transactions.` 
+        }],
+        isError: true
+      };
+    }
+  }
+);
+
+// Add a tool to generate end of day report
+server.tool(
+  "getEndOfDayReport",
+  { 
+    walletAddress: z.string().describe("The Solana wallet address to generate report for"),
+  },
+  async ({ walletAddress }) => {
+    try {
+      const report = await walletAnalyzer.generateEndOfDayReport(walletAddress);
+      
+      return {
+        content: [{ 
+          type: "text", 
+          text: report
+        }]
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text", text: `Error generating report: ${error.message}` }],
+        isError: true
+      };
+    }
+  }
+);
+
+// Add a resource for wallet analysis
+server.resource(
+  "walletAnalysis",
+  new ResourceTemplate("wallet://{address}/analysis", { 
+    list: async () => ({
+      resources: []  // Empty list since this is a dynamic resource
+    })
+  }),
+  async (uri, params) => {
+    const walletAddress = params.address as string;
+    try {
+      const stats = await walletAnalyzer.analyzeWallet(walletAddress);
+      
+      return {
+        contents: [{
+          uri: uri.href,
+          text: `
+Trading Analysis for ${walletAddress}:
+- Total Trades: ${stats.totalTrades}
+- Profitable Trades: ${stats.profitableTrades}
+- Success Rate: ${stats.successRate.toFixed(2)}%
+- Total P/L: ${stats.totalProfitLoss.toFixed(4)} SOL
+- Average Trade Size: ${stats.averageTradeSize.toFixed(4)} SOL
+- Largest Trade: ${stats.largestTrade.toFixed(4)} SOL
+          `
+        }]
+      };
+    } catch (error: any) {
+      return {
+        contents: [{
+          uri: uri.href,
+          text: `Error analyzing wallet: ${error.message}`
+        }]
+      };
+    }
   }
 );
 
