@@ -49,13 +49,13 @@ async function getCryptoPrice(cryptoId: string): Promise<CryptoPrice | { error: 
   
   // Check cache first to avoid unnecessary API calls
   if (priceCache[id] && (Date.now() - priceCache[id].timestamp) < CACHE_TTL) {
-    console.log(`🔵 CACHE HIT: Using cached data for ${id}, cached at ${new Date(priceCache[id].timestamp).toISOString()}`);
+    console.log(`CACHE HIT: Using cached data for ${id}, cached at ${new Date(priceCache[id].timestamp).toISOString()}`);
     return priceCache[id].data;
   }
   
   // Try CoinGecko API first (most reliable)
   try {
-    console.log(`🟢 API CALL: Fetching live price for ${id} from CoinGecko`);
+    console.log(`API CALL: Fetching live price for ${id} from CoinGecko`);
     const response = await axios.get(`https://api.coingecko.com/api/v3/simple/price`, {
       params: {
         ids: id,
@@ -73,7 +73,7 @@ async function getCryptoPrice(cryptoId: string): Promise<CryptoPrice | { error: 
     });
     
     if (response.status === 200 && response.data && response.data[id] && response.data[id].usd) {
-      console.log(`✅ API SUCCESS: Got price for ${id}: $${response.data[id].usd}`);
+      console.log(`API SUCCESS: Got price for ${id}: $${response.data[id].usd}`);
       
       // Get proper name and symbol info
       let name = id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' ');
@@ -388,9 +388,22 @@ Trading Analysis for ${walletAddress}:
 // Start the server with stdio transport
 async function main() {
   const transport = new StdioServerTransport();
-  console.error("Starting CryptoPriceServer...");
+  
+  // Redirect console output to stderr to avoid interfering with MCP communication
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+  
+  console.log = (...args) => {
+    originalConsoleError('[LOG]', ...args);
+  };
+  
+  console.error = (...args) => {
+    originalConsoleError('[ERROR]', ...args);
+  };
+  
+  originalConsoleError("Starting CryptoPriceServer...");
   await server.connect(transport);
-  console.error("CryptoPriceServer connected");
+  originalConsoleError("CryptoPriceServer connected");
 }
 
 main().catch(err => {
